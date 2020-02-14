@@ -1,0 +1,64 @@
+{
+	"info": {
+		"_postman_id": "f1dedfd4-f291-4c7a-9377-9251d84a9145",
+		"name": "oatuh2",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "localhost:8082/oauth/token",
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": [
+						{
+							"key": "password",
+							"value": "clientsecret123",
+							"type": "string"
+						},
+						{
+							"key": "username",
+							"value": "clientid123",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "formdata",
+					"formdata": [
+						{
+							"key": "grant_type",
+							"value": "password",
+							"type": "text"
+						},
+						{
+							"key": "username",
+							"value": "kush",
+							"type": "text"
+						},
+						{
+							"key": "password",
+							"value": "kush",
+							"type": "text"
+						}
+					]
+				},
+				"url": {
+					"raw": "localhost:8082/oauth/token",
+					"host": [
+						"localhost"
+					],
+					"port": "8082",
+					"path": [
+						"oauth",
+						"token"
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"protocolProfileBehavior": {}
+}
