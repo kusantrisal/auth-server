@@ -17,6 +17,8 @@ import org.springframework.security.oauth2.config.annotation.web.configurers.Aut
 import org.springframework.security.oauth2.config.annotation.web.configurers.AuthorizationServerSecurityConfigurer;
 import org.springframework.security.oauth2.provider.token.TokenStore;
 import org.springframework.security.oauth2.provider.token.store.InMemoryTokenStore;
+import org.springframework.security.oauth2.provider.token.store.JwtAccessTokenConverter;
+import org.springframework.security.oauth2.provider.token.store.JwtTokenStore;
 
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
 import com.zerotoheroquick.service.CustomClientDetailService;
@@ -27,17 +29,17 @@ public class AuthServerConfig extends WebSecurityConfigurerAdapter implements Au
 
 	@Autowired
 	private UserDetailsService userDetailsService;
-	
+
 	@Bean
 	public PasswordEncoder passwordEncoder() {
-	    return new BCryptPasswordEncoder();
+		return new BCryptPasswordEncoder();
 	}
-	
+
 	@Bean
 	public AuthenticationManager authenticationManagerBean() throws Exception {
 		return super.authenticationManagerBean();
 	}
-	
+
 	@Autowired
 	private AuthenticationManager authenticationManager;
 
@@ -47,22 +49,29 @@ public class AuthServerConfig extends WebSecurityConfigurerAdapter implements Au
 	}
 
 	@Bean
-	public TokenStore customTokenStore(AmazonDynamoDB amazonDynamoDB) {
-		return new InMemoryTokenStore();
+	public JwtAccessTokenConverter accessTokenConverter() {
+		JwtAccessTokenConverter converter = new JwtAccessTokenConverter();
+		converter.setSigningKey("secret");
+		return converter;
 	}
-	
+
+	@Bean
+	public TokenStore customTokenStore(AmazonDynamoDB amazonDynamoDB) {
+		return new JwtTokenStore(accessTokenConverter());
+	}
+
 	@Autowired
 	@Qualifier("customTokenStore")
 	private TokenStore customTokenStore;
-	//overwriting methods in AuthorizationServerConfigurer
-	
+
+
 	@Autowired
 	private CustomClientDetailService customClientDetailService;
-	
+
 	@Override
 	public void configure(AuthorizationServerSecurityConfigurer security) throws Exception {
 		security.checkTokenAccess("permitAll()");
-		
+
 	}
 
 	@Override
@@ -72,16 +81,17 @@ public class AuthServerConfig extends WebSecurityConfigurerAdapter implements Au
 //		.scopes("READ","WRITE")
 //		.authorizedGrantTypes("refresh_token","authorization_code","password","client_credentials")
 //		.accessTokenValiditySeconds(3600);
-		
+
 		clients.withClientDetails(customClientDetailService);
-		
+
 	}
 
 	@Override
 	public void configure(AuthorizationServerEndpointsConfigurer endpoints) throws Exception {
 		endpoints.authenticationManager(authenticationManager);
 		endpoints.tokenStore(customTokenStore);
-		
+		endpoints.accessTokenConverter(accessTokenConverter());
+
 	}
-	
+
 }
