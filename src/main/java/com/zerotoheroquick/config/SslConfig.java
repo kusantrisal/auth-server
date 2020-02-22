@@ -43,7 +43,7 @@ public class SslConfig {
 		connector.setScheme("http");
 		connector.setPort(8081);
 		connector.setSecure(false);
-		connector.setRedirectPort(8443);
+		connector.setRedirectPort(8444);
 		return connector;
 	}
 

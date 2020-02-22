@@ -1,9 +1,12 @@
 package com.zerotoheroquick.config;
 
+import java.util.Arrays;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -16,12 +19,16 @@ import org.springframework.security.oauth2.config.annotation.web.configuration.A
 import org.springframework.security.oauth2.config.annotation.web.configuration.EnableAuthorizationServer;
 import org.springframework.security.oauth2.config.annotation.web.configurers.AuthorizationServerEndpointsConfigurer;
 import org.springframework.security.oauth2.config.annotation.web.configurers.AuthorizationServerSecurityConfigurer;
+import org.springframework.security.oauth2.provider.token.DefaultTokenServices;
+import org.springframework.security.oauth2.provider.token.TokenEnhancer;
+import org.springframework.security.oauth2.provider.token.TokenEnhancerChain;
 import org.springframework.security.oauth2.provider.token.TokenStore;
 import org.springframework.security.oauth2.provider.token.store.InMemoryTokenStore;
 import org.springframework.security.oauth2.provider.token.store.JwtAccessTokenConverter;
 import org.springframework.security.oauth2.provider.token.store.JwtTokenStore;
 
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
+import com.zerotoheroquick.security.CustomTokenEnhancer;
 import com.zerotoheroquick.service.CustomClientDetailService;
 
 @Configuration
@@ -57,6 +64,15 @@ public class AuthServerConfig extends WebSecurityConfigurerAdapter implements Au
 	}
 
 	@Bean
+	@Primary
+	public DefaultTokenServices tokenServices() {
+		DefaultTokenServices defaultTokenServices = new DefaultTokenServices();
+		defaultTokenServices.setTokenStore(customTokenStore);
+		defaultTokenServices.setSupportRefreshToken(true);
+		return defaultTokenServices;
+	}
+
+	@Bean
 	public TokenStore customTokenStore(AmazonDynamoDB amazonDynamoDB) {
 		return new JwtTokenStore(accessTokenConverter());
 	}
@@ -64,7 +80,6 @@ public class AuthServerConfig extends WebSecurityConfigurerAdapter implements Au
 	@Autowired
 	@Qualifier("customTokenStore")
 	private TokenStore customTokenStore;
-
 
 	@Autowired
 	private CustomClientDetailService customClientDetailService;
@@ -90,16 +105,24 @@ public class AuthServerConfig extends WebSecurityConfigurerAdapter implements Au
 	@Override
 	public void configure(AuthorizationServerEndpointsConfigurer endpoints) throws Exception {
 		endpoints.authenticationManager(authenticationManager);
-		endpoints.tokenStore(customTokenStore);
-		endpoints.accessTokenConverter(accessTokenConverter());
+
+		TokenEnhancerChain tokenEnhancerChain = new TokenEnhancerChain();
+		tokenEnhancerChain.setTokenEnhancers(Arrays.asList(tokenEnhancer(), accessTokenConverter()));
+		endpoints.tokenStore(customTokenStore).tokenEnhancer(tokenEnhancerChain);
+	//	endpoints.accessTokenConverter(accessTokenConverter());
 
 	}
-	
+
+	@Bean
+	public TokenEnhancer tokenEnhancer() {
+		return new CustomTokenEnhancer();
+	}
+
 	@Override
 	protected void configure(HttpSecurity http) throws Exception {
 		http.csrf().disable();
-		//only allow security to url prefixed with secure
-		http.requestMatchers().antMatchers("/health","**/oauth/**");
+		// only allow security to url prefixed with secure
+		http.requestMatchers().antMatchers("/health", "**/oauth/**");
 	}
 
 }
